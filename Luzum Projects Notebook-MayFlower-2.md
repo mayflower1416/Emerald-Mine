@@ -1,0 +1,2852 @@
+
+
+```python
+#MAYFLOWER
+#12/2/2019
+#Luzum Labs Atrovastatin usage and C-Carriers project
+
+" I have attached data from a study of patients on atorvastatin. The primary outcome is whether or not"
+" the patient stopped taking their atorvastatin due to muscle side effects. The hypothesis is that carriers of"
+" the SLCO1B1 C genetic allele (C-carrier) have increased risk of stopping atorvastatin due to muscle side effects,"
+" independent of clinical risk factors. Using this dataset, can you test this hypothesis with the"
+" appropriate statistical tests and write a 250 word structured abstract (Background, Methods, Results, and Conclusion)?"
+" Would you be able to return the abstract, your programming code, and statistical output to me in 2 weeks(due December 12)"
+```
+
+
+
+
+    ' Would you be able to return the abstract, your programming code, and statistical output to me in 2 weeks(due December 12)'
+
+
+
+
+```python
+
+import pandas as pd
+from scipy.stats import ttest_1samp
+import numpy as np
+from scipy import stats
+import numpy as np
+from statsmodels.stats.proportion import proportions_ztest
+
+data = pd.read_excel (r'Atorvastatin example dataset v2.xlsx')
+data.head() #visulaizes the head of the data to understand what it looks like   
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>ID</th>
+      <th>CLDPast5YrsName</th>
+      <th>CLDPast5YrsRawDose</th>
+      <th>FamHistHeartDx</th>
+      <th>Obese</th>
+      <th>HTN</th>
+      <th>SMOKER</th>
+      <th>Diabetes</th>
+      <th>LiverDx</th>
+      <th>StartAge</th>
+      <th>Sex</th>
+      <th>Race</th>
+      <th>SLCO1B1</th>
+      <th>SLCO1B1comb</th>
+      <th>StoppedAtorvMusc</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1001</td>
+      <td>Atorvastatin</td>
+      <td>10mg</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>61.6099</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1002</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1003</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>47.2279</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1005</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>52.3915</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>1010</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+"Null Hypothesis H0: Patients who are C carriers of the SLCO1B1 C genetic allele"
+"stop their atorvastatin due to muscle side effects at a rate less than or equal"
+"to those without the C genetic allele."
+
+"Alternative Hypothesis H1: Patients who are C carriers of the SLCO1B1 C genetic allele"
+"stop their atorvastatin due to muscle side effects at a rate greater than"
+"those without the C genetic allele."
+```
+
+
+
+
+    'those without the C genetic allele.'
+
+
+
+
+```python
+# first we shall filter out the all the patients who display clinial risk factors by requiring that 
+#only those rows whose values of clumns 4-9=0. This will control for potential confounding variables 
+#and allow us to directly test the null hypothesis above without having to deal with possibly measuring a variable 
+#that highly correlates with whether or not a patient abandons their medication.
+
+controlledDataSet =data[(data['FamHistHeartDx'] ==0 ) & (data['Obese'] ==0 ) & (data['HTN'] ==0 )& (data['SMOKER'] ==0 ) & (data['StoppedAtorvMusc'].notnull())]
+controlledDataSet
+#eliminating all patients who have any clinical risk factor leaves us with 72 rows which is still a significant data set
+#Also all rows in which the last columns value is null Therefore, this is the dataset we will be testing in the cells below.
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>ID</th>
+      <th>CLDPast5YrsName</th>
+      <th>CLDPast5YrsRawDose</th>
+      <th>FamHistHeartDx</th>
+      <th>Obese</th>
+      <th>HTN</th>
+      <th>SMOKER</th>
+      <th>Diabetes</th>
+      <th>LiverDx</th>
+      <th>StartAge</th>
+      <th>Sex</th>
+      <th>Race</th>
+      <th>SLCO1B1</th>
+      <th>SLCO1B1comb</th>
+      <th>StoppedAtorvMusc</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1001</td>
+      <td>Atorvastatin</td>
+      <td>10mg</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>61.6099</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1002</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>1015</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>60.2108</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>1017</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>58.2669</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>1019</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>31.8741</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/C</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>1023</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>74.4641</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>1025</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>1026</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>68.2574</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>1035</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>50.3162</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>1037</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>1038</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>1040</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>35.9945</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>1046</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>66.9925</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>26</th>
+      <td>1057</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>70.9103</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>27</th>
+      <td>1059</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>40.1533</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>28</th>
+      <td>1060</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>66.7570</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>29</th>
+      <td>1061</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>71.9452</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>33</th>
+      <td>1066</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>42.4203</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>35</th>
+      <td>1070</td>
+      <td>Atorvastatin</td>
+      <td>40</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>62.2341</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>36</th>
+      <td>1072</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>55.7399</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>37</th>
+      <td>1073</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>60.2957</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>40</th>
+      <td>1086</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>69.3470</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>41</th>
+      <td>1087</td>
+      <td>Atorvastatin</td>
+      <td>80</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>65.6372</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>42</th>
+      <td>1090</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>59.8494</td>
+      <td>NaN</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>44</th>
+      <td>1093</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>62.4942</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>48</th>
+      <td>1101</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>49</th>
+      <td>1103</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>56.8405</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>51</th>
+      <td>1105</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>60.9610</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/C</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>52</th>
+      <td>1112</td>
+      <td>Atorvastatin</td>
+      <td>40mg</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>64.7502</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>53</th>
+      <td>1116</td>
+      <td>Atorvastatin</td>
+      <td>40mg</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>61.1745</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>83</th>
+      <td>1173</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>69.3470</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>84</th>
+      <td>1175</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>999.0000</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>86</th>
+      <td>1180</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>87</th>
+      <td>1190</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>58.6749</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/C</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>88</th>
+      <td>1194</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>29.6400</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>89</th>
+      <td>1198</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>53.2539</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>107</th>
+      <td>1241</td>
+      <td>Atorvastatin</td>
+      <td>40</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>112</th>
+      <td>1257</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>133</th>
+      <td>1353</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>138</th>
+      <td>1383</td>
+      <td>Atorvastatin</td>
+      <td>80</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>44.0000</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>144</th>
+      <td>1405</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>58.6064</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>145</th>
+      <td>1406</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>70.0370</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>158</th>
+      <td>1449</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>51.7426</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>168</th>
+      <td>1496</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>71.1595</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>170</th>
+      <td>1518</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>64.6215</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>221</th>
+      <td>2027</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>55.0445</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>235</th>
+      <td>2056</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>52.7146</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>238</th>
+      <td>2061</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>63.8604</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>246</th>
+      <td>2090</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>60.1123</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>247</th>
+      <td>2091</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>258</th>
+      <td>2125</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>51.7591</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>264</th>
+      <td>2144</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>66.7734</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>265</th>
+      <td>2145</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>54.1602</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>270</th>
+      <td>2156</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>35.7782</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>291</th>
+      <td>2207</td>
+      <td>Atorvastatin</td>
+      <td>60</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>47.2005</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>305</th>
+      <td>2246</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>58.7351</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>320</th>
+      <td>2438</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>47.9589</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>327</th>
+      <td>2542</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>63.4716</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>351</th>
+      <td>2788</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>77.3881</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>371</th>
+      <td>3038</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>76.3833</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/C</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+  </tbody>
+</table>
+<p>72 rows × 15 columns</p>
+</div>
+
+
+
+
+```python
+#now we will count how many patients stopped their Atorvastatin medication by measuring the size of the data frame grouped by  the 'StoppedAtorvMusc'
+controlledDataSet.groupby('StoppedAtorvMusc').size()
+```
+
+
+
+
+    StoppedAtorvMusc
+    N    39
+    Y    33
+    dtype: int64
+
+
+
+
+```python
+popPropofStoppedAtorvMusc = 33/(39+33)
+popPropofStoppedAtorvMusc
+```
+
+
+
+
+    0.4583333333333333
+
+
+
+
+```python
+#Now we shall extract the population of the C-carriers with the same method used to clean the data (ie filtering)
+cCarriersData = controlledDataSet[(controlledDataSet['SLCO1B1comb'] == 'C-carrier')]
+cCarriersData                                  
+                                
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>ID</th>
+      <th>CLDPast5YrsName</th>
+      <th>CLDPast5YrsRawDose</th>
+      <th>FamHistHeartDx</th>
+      <th>Obese</th>
+      <th>HTN</th>
+      <th>SMOKER</th>
+      <th>Diabetes</th>
+      <th>LiverDx</th>
+      <th>StartAge</th>
+      <th>Sex</th>
+      <th>Race</th>
+      <th>SLCO1B1</th>
+      <th>SLCO1B1comb</th>
+      <th>StoppedAtorvMusc</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1001</td>
+      <td>Atorvastatin</td>
+      <td>10mg</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>61.6099</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>1019</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>31.8741</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/C</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>1038</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>35</th>
+      <td>1070</td>
+      <td>Atorvastatin</td>
+      <td>40</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>62.2341</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>40</th>
+      <td>1086</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>69.3470</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>41</th>
+      <td>1087</td>
+      <td>Atorvastatin</td>
+      <td>80</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>65.6372</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>48</th>
+      <td>1101</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>51</th>
+      <td>1105</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>60.9610</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/C</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>52</th>
+      <td>1112</td>
+      <td>Atorvastatin</td>
+      <td>40mg</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>64.7502</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>59</th>
+      <td>1126</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>58.0287</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/C</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>63</th>
+      <td>1133</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>58.1273</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>69</th>
+      <td>1142</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>61.1417</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>78</th>
+      <td>1156</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>55.5455</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>80</th>
+      <td>1161</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>52.7173</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>87</th>
+      <td>1190</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>58.6749</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/C</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>88</th>
+      <td>1194</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>29.6400</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>246</th>
+      <td>2090</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>60.1123</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>258</th>
+      <td>2125</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>51.7591</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>265</th>
+      <td>2145</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>54.1602</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>C/T</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>371</th>
+      <td>3038</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>76.3833</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>C/C</td>
+      <td>C-carrier</td>
+      <td>Y</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+cCarriersData.groupby('StoppedAtorvMusc').size()
+```
+
+
+
+
+    StoppedAtorvMusc
+    N    11
+    Y     9
+    dtype: int64
+
+
+
+
+```python
+sampPropofStoppedAtorvMusc = 9/(9+11)
+sampPropofStoppedAtorvMusc
+```
+
+
+
+
+    0.45
+
+
+
+
+```python
+notcCarriersData = controlledDataSet[(controlledDataSet['SLCO1B1comb'] != 'C-carrier') & controlledDataSet['SLCO1B1comb'].notnull()]
+notcCarriersData
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>ID</th>
+      <th>CLDPast5YrsName</th>
+      <th>CLDPast5YrsRawDose</th>
+      <th>FamHistHeartDx</th>
+      <th>Obese</th>
+      <th>HTN</th>
+      <th>SMOKER</th>
+      <th>Diabetes</th>
+      <th>LiverDx</th>
+      <th>StartAge</th>
+      <th>Sex</th>
+      <th>Race</th>
+      <th>SLCO1B1</th>
+      <th>SLCO1B1comb</th>
+      <th>StoppedAtorvMusc</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>1</th>
+      <td>1002</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>1015</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>60.2108</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>1017</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>58.2669</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>1023</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>74.4641</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>1025</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>1026</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>68.2574</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>1035</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>50.3162</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>1037</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>1040</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>35.9945</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>1046</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>66.9925</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>26</th>
+      <td>1057</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>70.9103</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>27</th>
+      <td>1059</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>40.1533</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>33</th>
+      <td>1066</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>42.4203</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>36</th>
+      <td>1072</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>55.7399</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>37</th>
+      <td>1073</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>60.2957</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>42</th>
+      <td>1090</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>59.8494</td>
+      <td>NaN</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>44</th>
+      <td>1093</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>62.4942</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>49</th>
+      <td>1103</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>56.8405</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>53</th>
+      <td>1116</td>
+      <td>Atorvastatin</td>
+      <td>40mg</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>61.1745</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>57</th>
+      <td>1122</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>62</th>
+      <td>1130</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>54.2067</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>64</th>
+      <td>1134</td>
+      <td>Atorvastatin</td>
+      <td>80</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>70</th>
+      <td>1144</td>
+      <td>Atorvastatin</td>
+      <td>40</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>51.2005</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>71</th>
+      <td>1145</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>49.3936</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>72</th>
+      <td>1146</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>42.5955</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>81</th>
+      <td>1169</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>59.7290</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>83</th>
+      <td>1173</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>69.3470</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>84</th>
+      <td>1175</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>999.0000</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>86</th>
+      <td>1180</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>89</th>
+      <td>1198</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>53.2539</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>107</th>
+      <td>1241</td>
+      <td>Atorvastatin</td>
+      <td>40</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>112</th>
+      <td>1257</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>133</th>
+      <td>1353</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>138</th>
+      <td>1383</td>
+      <td>Atorvastatin</td>
+      <td>80</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>44.0000</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>144</th>
+      <td>1405</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>58.6064</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>145</th>
+      <td>1406</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>70.0370</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>158</th>
+      <td>1449</td>
+      <td>Atorvastatin</td>
+      <td>NaN</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>51.7426</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>168</th>
+      <td>1496</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>71.1595</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>170</th>
+      <td>1518</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>64.6215</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>221</th>
+      <td>2027</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>55.0445</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>235</th>
+      <td>2056</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>52.7146</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>238</th>
+      <td>2061</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>63.8604</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>247</th>
+      <td>2091</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>NaN</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>264</th>
+      <td>2144</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>66.7734</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>270</th>
+      <td>2156</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>35.7782</td>
+      <td>F</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>291</th>
+      <td>2207</td>
+      <td>Atorvastatin</td>
+      <td>60</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>47.2005</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>305</th>
+      <td>2246</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>58.7351</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+    <tr>
+      <th>320</th>
+      <td>2438</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>47.9589</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>327</th>
+      <td>2542</td>
+      <td>Atorvastatin</td>
+      <td>10</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1</td>
+      <td>0</td>
+      <td>63.4716</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>Y</td>
+    </tr>
+    <tr>
+      <th>351</th>
+      <td>2788</td>
+      <td>Atorvastatin</td>
+      <td>20</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>77.3881</td>
+      <td>M</td>
+      <td>Caucasian</td>
+      <td>T/T</td>
+      <td>T-hom</td>
+      <td>N</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+notcCarriersData.groupby('StoppedAtorvMusc').size()
+
+```
+
+
+
+
+    StoppedAtorvMusc
+    N    26
+    Y    24
+    dtype: int64
+
+
+
+
+```python
+samp2PropofStoppedAtorvMusc = 24/(24+26)
+samp2PropofStoppedAtorvMusc
+```
+
+
+
+
+    0.48
+
+
+
+
+```python
+#Now, we apply the 2 samp t test comparing the prop of patients abandoning medication since one of our samples has less than 30 values
+#in both the subset of data of c carriers compared to the non c carriers in the population.
+import statsmodels.api as sm
+import numpy as np
+import matplotlib.pyplot as plt
+
+Ccarriers = np.random.binomial(1, sampPropofStoppedAtorvMusc, 20)
+nonCcarriers = np.random.binomial(1, samp2PropofStoppedAtorvMusc, 50)
+ttest, p, df =sm.stats.ttest_ind(Ccarriers, nonCcarriers)
+print("p value is",p ,", ttest is ",ttest, "and with ", df, " degrees of freedom")
+#Since we are doing a one tailed greater than test, our conditions are that p/2<.05 and the t value be positive
+if (p/2 <0.05) & (ttest >0):
+    print("We are rejecting the null hypothesis that patients who are C carriers of the SLCO1B1 C genetic allele stop their atorvastatin due to muscle side effects at a rate less than or equal to those without the C genetic allele.")
+else:
+    print("We fail to reject the null hypothesis that patients who are C carriers of the SLCO1B1 C genetic allele stop their atorvastatin due to muscle side effects at a rate less than or equal to those without the C genetic allele.")
+
+
+```
+
+    p value is 0.07090177281726445 , ttest is  -1.834852543846123 and with  68.0  degrees of freedom
+    We fail to reject the null hypothesis that patients who are C carriers of the SLCO1B1 C genetic allele stop their atorvastatin due to muscle side effects at a rate less than or equal to those without the C genetic allele.
+
+
+
+```python
+"We were tasked with determining if the data in the 'Atorvastatin example dataset v2.xlsx' show whetاer or not those with the C genetic allele (C-carriers) have increased risk"
+"of stopping their atorvastatin medication. We controlled for clinical risk factors "
+"by applying filters excluding all rows with values of 1 in the following columns:FamHistHeartDx, Obese, HTN,"
+"SMOKER, Diabetes and LiverDx. This is because these are variables which are positively correlated with patients"
+"avoiding their medication. Furthermore, we excluded all rows which had null values in the 'StoppedAtorvMusc' since"
+"such entries tell us nothing about what we wish to measure. First, we split the controlledDataSet into"
+"2 subsets named 'cCarriersData' and 'notcCarriersData' with the latter consisting only of patients who were C-carriers and"
+"the latter excluding those who were C-carriers and who had null values in the 'SLCO1B1comb', excluding those patients"
+"whose genotype was not recorded. After this, we used the 'groupby' function to determine how many patients in both"
+"datasets abandoned their medication and then proceeded to hypothesis testing. We used t-testing because 'cCarriersData'"
+"has less than 30 data points in it. Furthermore, we applied an 'ifelse' function with the conditions of p/2 <0.05 and  ttest >0" 
+"since the task requires us to determine whether or not C-Carriers were more likely to abandon their medication entailing that" 
+"we should do a right-tailed test. The result was that p/2>.05 for every iteration and the t value was negative for most violating"
+"the conditions meaning that we failed to reject H0 which stated that patients who are C carriers of the SLCO1B1 C"
+"genetic allele stop their atorvastatin due to muscle side effects at a rate less than or equal to those without the C genetic allele."
+"We can confidently say that the data in this set do not show a positive relationship between abandoning Atorvastatin medication and carrying the C allele."
+```
+
+
+
+
+    'We can confidently say that the data in this set do not show a positive relationship between abandoning Atorvastatin medication and carrying the C allele.'
+
+
+
+
+```python
+
+```

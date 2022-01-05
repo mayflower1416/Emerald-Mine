@@ -1,0 +1,84 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 41,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def immigrant_Work_status():\n",
+    "    citizenship =input(\"Are you a citizen? type 'yes' or 'no':\")\n",
+    "    if citizenship =='yes':\n",
+    "        return \"You meet the residency/eligibility requirements for this position.\"\n",
+    "    elif citizenship =='no':\n",
+    "        visaStatus = input(\"Do you have a work visa? type 'yes' or 'no':\")\n",
+    "        if visaStatus =='yes':\n",
+    "            return \"You meet the residency/eligibility requirements for this position.\"\n",
+    "        elif visaStatus  =='no':\n",
+    "            return \"You do not meet the residency/eligibility requirements for this position.\"\n",
+    "        else:\n",
+    "            print('invalid input. make sure to type only \"yes\" or \"no\"')\n",
+    "            return immigrant_Work_status() \n",
+    "    else:\n",
+    "        print('invalid input. make sure to type only \"yes\" or \"no\"')\n",
+    "        return  immigrant_Work_status() \n",
+    "            \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 42,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Are you a citizen? type 'yes' or 'no':yes\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "'You meet the residency/eligibility requirements for this position.'"
+      ]
+     },
+     "execution_count": 42,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "immigrant_Work_status()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

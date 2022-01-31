@@ -1,0 +1,13 @@
+
+/*
+    Enter your query here and follow these instructions:
+    1. Please append a semicolon ";" at the end of the query and enter your query in a single line to avoid error.
+    2. The AS keyword causes errors, so follow this convention: "Select t.Field From table1 t" instead of "select t.Field From table1 AS t"
+    3. Type your code immediately after comment. Don't leave any blank line.
+*/
+
+SELECT C.company_code, C.founder, count(distinct LM.lead_manager_code), count(distinct SM.senior_manager_code), count(distinct M.manager_code),count(distinct E.Employee_code)
+FROM Company C, Lead_manager LM, Senior_manager SM, Manager M, Employee E
+WHERE C.company_code = LM.company_code AND LM.lead_manager_code = SM.lead_manager_code AND SM.senior_manager_code= M.senior_manager_code AND M.manager_code= E.manager_code
+GROUP BY C.company_code, C.founder
+ORDER BY C.company_code ASC;

@@ -2808,9 +2808,11 @@ ttest, p, df =sm.stats.ttest_ind(Ccarriers, nonCcarriers)
 print("p value is",p ,", ttest is ",ttest, "and with ", df, " degrees of freedom")
 #Since we are doing a one tailed greater than test, our conditions are that p/2<.05 and the t value be positive
 if (p/2 <0.05) & (ttest >0):
-    print("We are rejecting the null hypothesis that patients who are C carriers of the SLCO1B1 C genetic allele stop their atorvastatin due to muscle side effects at a rate less than or equal to those without the C genetic allele.")
+    print("We are rejecting the null hypothesis that patients who are C carriers of the SLCO1B1 C genetic allele stop their atorvastatin due to 
+    muscle side effects at a rate less than or equal to those without the C genetic allele.")
 else:
-    print("We fail to reject the null hypothesis that patients who are C carriers of the SLCO1B1 C genetic allele stop their atorvastatin due to muscle side effects at a rate less than or equal to those without the C genetic allele.")
+    print("We fail to reject the null hypothesis that patients who are C carriers of the SLCO1B1 C genetic allele stop their atorvastatin due to muscle 
+    side effects at a rate less than or equal to those without the C genetic allele.")
 
 
 ```

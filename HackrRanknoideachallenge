@@ -1,0 +1,15 @@
+nm= input().split() #seperates by space
+m_array = map(int,nm) #converts to array
+sets= map(int,input().split())
+
+A= set(map(int,input().split()))
+B= set(map(int,input().split())) #takes arrays converts to set
+
+happiness= 0
+#checks to see which elements of the original array are in each sat and increases the score and decreases the score if it is in set a or b respectively
+for i in sets:
+    if i in A:
+        happiness+=1
+    elif i in B:
+        happiness -=1
+print(happiness)

@@ -3,9 +3,9 @@
 
 # ##Business Analyst Interviews – Data Test Medical School Data and Analytics
 # 
-# Yousuf Ali
 # 
-# 3/6/2022
+# 
+#
 # 
 # 
 # 
